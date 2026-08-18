@@ -4,6 +4,7 @@ import BookList from "./components/BookList/BookList.jsx";
 import Summary from "./components/Summary/Summary.jsx";
 import SearchFilter from "./components/SearchFilter/SearchFilter.jsx";
 import BookHelper from "./utils/BookHelper.js";
+import ShelfManagement from "./components/ShelfManagement/ShelfManagement.jsx";
 
 // starter shelves
 const STARTER_SHELVES = [
@@ -22,13 +23,19 @@ const STARTER_SHELVES = [
 ];
 
 //migrate(convert) status value as shelfId
-const migrateBooks = (book) => {
-  const { status, ...newShelf } = book;
+const migrateBooks = (books) => {
+  return books.map((book) => { //accepts book array completely 
+    if (!book.status) {
+      return BookHelper(book);
+    }
 
-  return {
-    ...newShelf,
-    shelfId: status,
-  };
+    const { status, ...rest } = book;
+
+    return BookHelper({
+      ...rest,
+      shelfId: status,
+    });
+  });
 };
 
 function App() {
@@ -50,20 +57,24 @@ function App() {
 
   //takes the book from books with status and migrate books to shelf (then remove status and add shelfID)
   const [books, setBooks] = useState(() => {
-    const savedBooks = localStorage.getItem("books");
+  const savedBooks = localStorage.getItem("books");
 
-    if (!savedBooks) return [];
+  if (!savedBooks) {
+    return [];
+  }
 
-    const parsedBooks = JSON.parse(savedBooks);
+  const parsedBooks = JSON.parse(savedBooks);
 
-    return parsedBooks.map((e) => {
-      if (e.status) {
-        return BookHelper(migrateBookToShelf(e));
-      }
+  const needsMigration = parsedBooks.some(
+    (book) => book.status
+  );
 
-      return BookHelper(e);
-    });
-  });
+  if (needsMigration) {
+    return migrateBooks(parsedBooks);
+  }
+
+  return parsedBooks.map((book) => BookHelper(book));
+});
 
   //save books to local storage
   useEffect(() => {
@@ -89,9 +100,28 @@ function App() {
     );
   };
 
+  //-----------------shelf management----------------
+  // create a new shelf
+  const handleCreateShelf = (shelfName) => {
+    const newShelf = {
+      id: Date.now().toString(),
+      name: shelfName.trim(),
+    };
+
+    setShelves((prevShelves) => [...prevShelves, newShelf]);
+  };
+
+  // rename an existing shelf
+  const handleRenameShelf = (shelfId, newName) => {
+    setShelves((prevShelves) =>
+      prevShelves.map((shelf) =>
+        shelf.id === shelfId ? { ...shelf, name: newName.trim() } : shelf,
+      ),
+    );
+  };
   // ---------------------SEARCH----------------------
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [shelfFilter, setShelfFilter] = useState("all");
 
   //filter
   const filteredBooks = books.filter((book) => {
@@ -100,26 +130,28 @@ function App() {
       book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       book.author.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Status
-    const matchesStatus =
-      statusFilter === "all" || book.status === statusFilter;
+    // match shelf
+    const matchesShelf = shelfFilter === "all" || book.shelfId === shelfFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesShelf;
   });
 
   // -----------------------------summary count-----------------------
-  const toReadCount = books.filter((e) => e.status === "to-read").length;
+  const toReadCount = books.filter((e) => e.shelfId === "to-read").length;
 
-  const readingCount = books.filter((e) => e.status === "reading").length;
+  const readingCount = books.filter((e) => e.shelfId === "reading").length;
 
-  const finishedCount = books.filter((e) => e.status === "finished").length;
+  const finishedCount = books.filter((e) => e.shelfId === "finished").length;
 
   // for average rating
   const finishedBooks = books.filter((book) => {
     const rating = Number(book.rating);
 
     return (
-      book.status === "finished" && !isNaN(rating) && rating >= 1 && rating <= 5
+      book.shelfId === "finished" &&
+      !isNaN(rating) &&
+      rating >= 1 &&
+      rating <= 5
     );
   });
 
@@ -135,8 +167,13 @@ function App() {
     <div>
       {/* form */}
       {/* pass shelves as prop so that AddBookForm can access the shelves */}
-      <AddBookForm onAddBook={handleAddBook}
-      shelves = {shelves} />
+
+      <ShelfManagement
+        shelves={shelves}
+        onCreateShelf={handleCreateShelf}
+        onRenameShelf={handleRenameShelf}
+      />
+      <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
 
       {/* summary */}
       <Summary
@@ -150,8 +187,9 @@ function App() {
       <SearchFilter
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        shelfFilter={shelfFilter}
+        setShelfFilter={setShelfFilter}
+        shelves={shelves}
       />
 
       {/* booklist  */}

@@ -4,8 +4,9 @@ import "./SearchFilter.css";
 function SearchFilter({
   searchTerm,
   setSearchTerm,
-  statusFilter,
-  setStatusFilter,
+  shelfFilter,
+  setShelfFilter,
+  shelves
 }) {
   return (
     <div id="main-container">
@@ -24,13 +25,14 @@ function SearchFilter({
         />
 
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={shelfFilter}
+          onChange={(e) => setShelfFilter(e.target.value)}
         >
-          <option value="all">All</option>
-          <option value="to-read">To Read</option>
-          <option value="reading">Reading</option>
-          <option value="finished">Finished</option>
+          <option value="all">All shelves</option>
+          
+          {shelves.map((shelf) =>(
+            <option key = {shelf.id} value = {shelf.id}>{shelf.name}</option>
+          ))}
         </select>
       </div>
     </div>
