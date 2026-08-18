@@ -24,7 +24,8 @@ const STARTER_SHELVES = [
 
 //migrate(convert) status value as shelfId
 const migrateBooks = (books) => {
-  return books.map((book) => { //accepts book array completely 
+  return books.map((book) => {
+    //accepts book array completely
     if (!book.status) {
       return BookHelper(book);
     }
@@ -57,24 +58,22 @@ function App() {
 
   //takes the book from books with status and migrate books to shelf (then remove status and add shelfID)
   const [books, setBooks] = useState(() => {
-  const savedBooks = localStorage.getItem("books");
+    const savedBooks = localStorage.getItem("books");
 
-  if (!savedBooks) {
-    return [];
-  }
+    if (!savedBooks) {
+      return [];
+    }
 
-  const parsedBooks = JSON.parse(savedBooks);
+    const parsedBooks = JSON.parse(savedBooks);
 
-  const needsMigration = parsedBooks.some(
-    (book) => book.status
-  );
+    const needsMigration = parsedBooks.some((book) => book.status);
 
-  if (needsMigration) {
-    return migrateBooks(parsedBooks);
-  }
+    if (needsMigration) {
+      return migrateBooks(parsedBooks);
+    }
 
-  return parsedBooks.map((book) => BookHelper(book));
-});
+    return parsedBooks.map((book) => BookHelper(book));
+  });
 
   //save books to local storage
   useEffect(() => {
@@ -119,6 +118,24 @@ function App() {
       ),
     );
   };
+
+  //delete a shelf
+  const handleDeleteShelf = (shelfId, destination) => {
+    //1. move all books from deleted shelf
+    setBooks((prev) =>
+      prev.map((book) =>
+        book.shelfId === shelfId //finds book belonging to shelf deleting
+     ? { ...book, shelfId: destination } // move books to destinition shelf
+      : book,
+      ),
+    );
+
+    //2. remove shelf
+    setShelves((prev) => 
+    prev.filter((shelf) => shelf.id !== shelfId) //filters only those books which are != the shelf we are deleting
+  )
+  };
+
   // ---------------------SEARCH----------------------
   const [searchTerm, setSearchTerm] = useState("");
   const [shelfFilter, setShelfFilter] = useState("all");
@@ -172,6 +189,7 @@ function App() {
         shelves={shelves}
         onCreateShelf={handleCreateShelf}
         onRenameShelf={handleRenameShelf}
+        onDeleteShelf = {handleDeleteShelf}
       />
       <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
 
