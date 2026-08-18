@@ -5,16 +5,65 @@ import Summary from "./components/Summary/Summary.jsx";
 import SearchFilter from "./components/SearchFilter/SearchFilter.jsx";
 import BookHelper from "./utils/BookHelper.js";
 
+// starter shelves
+const STARTER_SHELVES = [
+  {
+    id: "to-read",
+    name: "To Read",
+  },
+  {
+    id: "reading",
+    name: "Reading",
+  },
+  {
+    id: "finished",
+    name: "Finished",
+  },
+];
+
+//migrate(convert) status value as shelfId
+const migrateBooks = (book) => {
+  const { status, ...newShelf } = book;
+
+  return {
+    ...newShelf,
+    shelfId: status,
+  };
+};
 
 function App() {
-  const [books, setBooks] = useState(() => {
-  const savedBooks = localStorage.getItem("books");
-  
-  // does not save in local storage if not a saved book
-  if (!savedBooks) return [];
+  // shelves state
+  const [shelves, setShelves] = useState(() => {
+    const savedShelves = localStorage.getItem("shelves");
 
-  return JSON.parse(savedBooks).map((book) => BookHelper(book));
-});
+    if (!savedShelves) {
+      return STARTER_SHELVES;
+    }
+
+    return JSON.parse(savedShelves);
+  });
+
+  //save shelves to localstorage
+  useEffect(() => {
+    localStorage.setItem("shelves", JSON.stringify(shelves));
+  }, [shelves]);
+
+  //takes the book from books with status and migrate books to shelf (then remove status and add shelfID)
+  const [books, setBooks] = useState(() => {
+    const savedBooks = localStorage.getItem("books");
+
+    if (!savedBooks) return [];
+
+    const parsedBooks = JSON.parse(savedBooks);
+
+    return parsedBooks.map((e) => {
+      if (e.status) {
+        return BookHelper(migrateBookToShelf(e));
+      }
+
+      return BookHelper(e);
+    });
+  });
 
   //save books to local storage
   useEffect(() => {
@@ -59,51 +108,43 @@ function App() {
   });
 
   // -----------------------------summary count-----------------------
-  const toReadCount = books.filter(
-    (e) => e.status === "to-read"
-  ).length;
+  const toReadCount = books.filter((e) => e.status === "to-read").length;
 
-  const readingCount = books.filter(
-    (e) => e.status === "reading"
-  ).length;
+  const readingCount = books.filter((e) => e.status === "reading").length;
 
-  const finishedCount = books.filter(
-    (e) => e.status === "finished"
-  ).length
+  const finishedCount = books.filter((e) => e.status === "finished").length;
 
-  // for average rating 
+  // for average rating
   const finishedBooks = books.filter((book) => {
-  const rating = Number(book.rating);
+    const rating = Number(book.rating);
 
-  return (
-    book.status === "finished" &&
-    !isNaN(rating) &&
-    rating >= 1 &&
-    rating <= 5
-  );
-});
+    return (
+      book.status === "finished" && !isNaN(rating) && rating >= 1 && rating <= 5
+    );
+  });
 
-  const averageRating = 
-        finishedBooks.length > 0 ? 
-        (
-          finishedBooks.reduce(
-            (sum, book) => sum + Number(book.rating),
-            0
-          ) / finishedBooks.length
+  const averageRating =
+    finishedBooks.length > 0
+      ? (
+          finishedBooks.reduce((sum, book) => sum + Number(book.rating), 0) /
+          finishedBooks.length
         ).toFixed(1)
-        : 0;
+      : 0;
 
   return (
     <div>
       {/* form */}
-      <AddBookForm onAddBook={handleAddBook} />
+      {/* pass shelves as prop so that AddBookForm can access the shelves */}
+      <AddBookForm onAddBook={handleAddBook}
+      shelves = {shelves} />
 
       {/* summary */}
-      <Summary  
-      toReadCount={toReadCount}
-      readingCount = {readingCount}
-      finishedCount = {finishedCount}
-      averageRating = {averageRating} />
+      <Summary
+        toReadCount={toReadCount}
+        readingCount={readingCount}
+        finishedCount={finishedCount}
+        averageRating={averageRating}
+      />
 
       {/* search filter  */}
       <SearchFilter
@@ -118,7 +159,8 @@ function App() {
         books={filteredBooks}
         onDelete={handleDelete}
         onEdit={handleEdit}
-        totalBooks = {books.length}
+        totalBooks={books.length}
+        shelves={shelves}
       />
     </div>
   );

@@ -2,7 +2,7 @@ import React from "react";
 import "./BookList.css";
 import BookItem from "../BookItem/BookItem.jsx";
 
-function BookList({ books, onDelete, onEdit, totalBooks }) {
+function BookList({ books, onDelete, onEdit, totalBooks, shelves }) {
   return (
     <div id="main-container">
       {/* heading container  */}
@@ -26,6 +26,7 @@ function BookList({ books, onDelete, onEdit, totalBooks }) {
               book={book}
               onDelete={onDelete}
               onEdit={onEdit}
+              shelves = {shelves}
             />
           ))
         )}

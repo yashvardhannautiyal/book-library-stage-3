@@ -3,7 +3,7 @@ import "./BookItem.css";
 import BookHelper from "../../utils/BookHelper";
 import BookValidation from "../../utils/BookValidation";
 
-function BookItem({ book, onDelete, onEdit }) {
+function BookItem({ book, onDelete, onEdit, shelves }) {
   //edit mode
   const [isEditing, setIsEditing] = useState(false);
 
@@ -15,6 +15,7 @@ function BookItem({ book, onDelete, onEdit }) {
     title: "",
     author: "",
     rating: "",
+    shelf: "",
   });
 
   //handle edit button func
@@ -24,17 +25,18 @@ function BookItem({ book, onDelete, onEdit }) {
       title: "",
       author: "",
       rating: "",
+      shelf: "",
     });
     setIsEditing(true);
   };
 
-  //status change
-  const handleStatusChange = (e) => {
+  //shelf change
+  const handleShelfChange = (e) => {
     const value = e.target.value;
 
     setEditedBook({
       ...editedBook,
-      status: value,
+      shelfId: value,
       rating: value === "finished" ? editedBook.rating : "",
     });
 
@@ -44,28 +46,36 @@ function BookItem({ book, onDelete, onEdit }) {
         rating: "",
       });
     }
+
+    if (errors.shelf) {
+      setErrors({
+        ...errors,
+        shelf: "",
+      });
+    }
   };
 
   //save
- const handleSave = () => {
-  const newErrors = BookValidation(editedBook);
+  const handleSave = () => {
+    const newErrors = BookValidation(editedBook, shelves);
 
-  setErrors(newErrors);
+    setErrors(newErrors);
 
-  if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) return;
 
-  const validBook = BookHelper(editedBook);
+    const validBook = BookHelper(editedBook);
 
-  onEdit(validBook);
+    onEdit(validBook);
 
-  setIsEditing(false);
+    setIsEditing(false);
 
-  setErrors({
-    title: "",
-    author: "",
-    rating: "",
-  });
-};
+    setErrors({
+      title: "",
+      author: "",
+      rating: "",
+      shelf: "",
+    });
+  };
 
   // cancel
   const handleCancel = () => {
@@ -75,6 +85,7 @@ function BookItem({ book, onDelete, onEdit }) {
       title: "",
       author: "",
       rating: "",
+      shelf: "",
     });
     setIsEditing(false);
   };
@@ -143,18 +154,25 @@ function BookItem({ book, onDelete, onEdit }) {
             {errors.author && <p className="error">{errors.author}</p>}
           </div>
 
-          {/* status  */}
+          {/* shelf  */}
           <div>
-            <label htmlFor="status">Status</label>
+            <label htmlFor="edit-shelf">Shelf</label>
+
             <select
-              id="status"
-              value={editedBook.status}
-              onChange={handleStatusChange}
+              id="edit-shelf"
+              value={editedBook.shelfId}
+              onChange={handleShelfChange}
             >
-              <option value="to-read">To Read</option>
-              <option value="reading">Reading</option>
-              <option value="finished">Finished</option>
+              <option value="">Select a shelf</option>
+
+              {shelves.map((shelf) => (
+                <option key={shelf.id} value={shelf.id}>
+                  {shelf.name}
+                </option>
+              ))}
             </select>
+
+            {errors.shelf && <p className="error">{errors.shelf}</p>}
           </div>
 
           {/* rating  */}
@@ -164,7 +182,7 @@ function BookItem({ book, onDelete, onEdit }) {
             <select
               id="rating"
               value={editedBook.rating}
-              disabled={editedBook.status !== "finished"}
+              disabled={editedBook.shelfId !== "finished"}
               onChange={(e) => {
                 setEditedBook({
                   ...editedBook,
@@ -205,10 +223,16 @@ function BookItem({ book, onDelete, onEdit }) {
           <h3 id="book-title">{book.title}</h3>
           {/* author  */}
           <p id="book-author">{book.author}</p>
-          {/* status  */}
-          <p id="book-status">Status: {book.status}</p>
+          {/* shelf  */}
+          <p id="book-shelf">
+            Shelf:{" "}
+            {shelves.find((shelf) => shelf.id === book.shelfId)?.name ||
+              "Unknown"}
+          </p>
           {/* rating  */}
-          <p>Rating: {book.status === "finished" ? book.rating || "-" : "-"}</p>
+          <p>
+            Rating: {book.shelfId === "finished" ? book.rating || "-" : "-"}
+          </p>
 
           <div className="btn-container">
             <button className="edit-btn" onClick={handleEdit}>

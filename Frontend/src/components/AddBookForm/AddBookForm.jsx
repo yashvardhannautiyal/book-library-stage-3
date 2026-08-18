@@ -3,11 +3,11 @@ import "./AddBookForm.css";
 import BookHelper from "../../utils/BookHelper";
 import BookValidation from "../../utils/BookValidation";
 
-function AddBookForm({ onAddBook }) {
+function AddBookForm({ onAddBook, shelves }) {
   //   user data change
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [status, setStatus] = useState("to-read");
+  const [shelfId, setShelfId] = useState("");
   const [rating, setRating] = useState("");
 
   //error
@@ -15,60 +15,59 @@ function AddBookForm({ onAddBook }) {
     title: "",
     author: "",
     rating: "",
+    shelf : "",
   });
 
-  //   status change
-  const handleStatusChange = (e) => {
-  const value = e.target.value;
-  setStatus(value);
+  // function - handle shelf change
+  const handleShelfChange = (e) => {
+    const value = e.target.value;
+    setShelfId(value);
 
-  if (value !== "finished") {
-    setRating("");
-
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      rating: "",
-    }));
+    if (errors.shelf) {
+    setErrors({
+      ...errors,
+      shelf: "",
+    });
   }
-};
+  };
 
   //   submit button
   const handleSubmit = (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  //creates a newBook object
-  const newBook = {
-    id: Date.now(),
-    title: title.trim(),
-    author: author.trim(),
-    status,
-    rating,
+    //creates a newBook object
+    const newBook = {
+      id: Date.now(),
+      title: title.trim(),
+      author: author.trim(),
+      shelfId,
+      rating,
+    };
+
+    //check for error in the newBook with help of BookValidation helper function
+    const newErrors = BookValidation(newBook, shelves);
+
+    //sets new errors that are or not found
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
+    const validBook = BookHelper(newBook);
+
+    onAddBook(validBook);
+
+    setTitle("");
+    setAuthor("");
+    setShelfId("");
+    setRating("");
+
+    setErrors({
+      title: "",
+      author: "",
+      rating: "",
+      shelf:"",
+    });
   };
-
-  //check for error in the newBook with help of BookValidation helper function
-  const newErrors = BookValidation(newBook);
-
-  //sets new errors that are or not found
-  setErrors(newErrors);
-
-  
-  if (Object.keys(newErrors).length > 0) return;
-
-  const validBook = BookHelper(newBook);
-
-  onAddBook(validBook);
-
-  setTitle("");
-  setAuthor("");
-  setStatus("to-read");
-  setRating("");
-
-  setErrors({
-    title: "",
-    author: "",
-    rating: "",
-  });
-};
   return (
     <div id="form-component">
       <div id="heading-container">
@@ -130,12 +129,17 @@ function AddBookForm({ onAddBook }) {
 
           {/* status  */}
           <div>
-            <label htmlFor="status">STATUS</label>
-            <select id="status" value={status} onChange={handleStatusChange}>
-              <option value="to-read">To Read</option>
-              <option value="reading">Reading</option>
-              <option value="finished">Finished</option>
+            <label htmlFor="shelf">SHELF</label>
+            <select id="shelf" value={shelfId} onChange={handleShelfChange}>
+              <option value="">Select a shelf</option>
+              {/* gives all the options that are created as a shelf previously  */}
+              {shelves.map((shelf) => (
+                <option key={shelf.id} value={shelf.id}>
+                  {shelf.name}
+                </option>
+              ))}
             </select>
+            {errors.shelf && <p className="error">{errors.shelf}</p>}
           </div>
           {/* rating  */}
           <div>
@@ -143,7 +147,7 @@ function AddBookForm({ onAddBook }) {
             <select
               id="rating"
               value={rating}
-              disabled={status !== "finished"}
+              disabled={shelfId !== "finished"}
               onChange={(e) => {
                 setRating(e.target.value);
 
