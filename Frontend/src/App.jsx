@@ -120,44 +120,42 @@ function App() {
 
   // edit books
   const handleEdit = (updatedBook) => {
-  setBooks((prevBooks) =>
-    prevBooks.map((book) => {
-      if (book.id !== updatedBook.id) {
-        return book;
-      }
+    setBooks((prevBooks) =>
+      prevBooks.map((book) => {
+        if (book.id !== updatedBook.id) {
+          return book;
+        }
 
-      // older version of shelf
-      const oldShelf = shelves.find(
-        (shelf) => shelf.id === book.shelfId,
-      );
+        // older version of shelf
+        const oldShelf = shelves.find((shelf) => shelf.id === book.shelfId);
 
-      //updated version of shelf
-      const newShelf = shelves.find(
-        (shelf) => shelf.id === updatedBook.shelfId,
-      );
+        //updated version of shelf
+        const newShelf = shelves.find(
+          (shelf) => shelf.id === updatedBook.shelfId,
+        );
 
-      //check if shelf was finished
-      const wasFinished = oldShelf?.isFinishedShelf === true;
-      const isFinished = newShelf?.isFinishedShelf === true;
+        //check if shelf was finished
+        const wasFinished = oldShelf?.isFinishedShelf === true;
+        const isFinished = newShelf?.isFinishedShelf === true;
 
-      let finishedAt = book.finishedAt ?? null;
+        let finishedAt = book.finishedAt ?? null;
 
-      // Moving INTO finished shelf
-      if (!wasFinished && isFinished) {
-        finishedAt = new Date().toISOString();
-      }
+        // Moving INTO finished shelf
+        if (!wasFinished && isFinished) {
+          finishedAt = new Date().toISOString();
+        }
 
-      // Moving OUT OF finished shelf
-      if (wasFinished && !isFinished) {
-        finishedAt = null;
-      }
+        // Moving OUT OF finished shelf
+        if (wasFinished && !isFinished) {
+          finishedAt = null;
+        }
 
-      return {
-        ...updatedBook,
-        finishedAt,
-      };
-    }),
-  );
+        return {
+          ...updatedBook,
+          finishedAt,
+        };
+      }),
+    );
   };
 
   //-----------------SHELF MANAGEMENT FUNCTIONS----------------
@@ -203,17 +201,13 @@ function App() {
 
   //delete a shelf
   const handleDeleteShelf = (shelfId, destination) => {
-  setBooks((prev) =>
-    prev.map((book) =>
-      book.shelfId === shelfId
-        ? { ...book, shelfId: destination }
-        : book,
-    ),
-  );
+    setBooks((prev) =>
+      prev.map((book) =>
+        book.shelfId === shelfId ? { ...book, shelfId: destination } : book,
+      ),
+    );
 
-  setShelves(
-    (prev) => prev.filter((shelf) => shelf.id !== shelfId),
-  );
+    setShelves((prev) => prev.filter((shelf) => shelf.id !== shelfId));
   };
 
   // ---------------------SEARCH----------------------
@@ -262,63 +256,50 @@ function App() {
         ).toFixed(1)
       : 0;
 
-  
   //-----------finished this year----------------
   const currentYear = new Date().getFullYear();
 
-const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
-const finishedThisYear = books.filter((book) => {
-  if (!book.finishedAt) {
-    return false;
-  }
+  const finishedThisYear = books.filter((book) => {
+    if (!book.finishedAt) {
+      return false;
+    }
 
-  const finishedYear = new Date(book.finishedAt).getFullYear();
+    const finishedYear = new Date(book.finishedAt).getFullYear();
 
-  return finishedYear === selectedYear;
-}).length;
+    return finishedYear === selectedYear;
+  }).length;
 
-const booksPerShelf = shelves.map((shelf) => ({
-  shelfId: shelf.id,
-  shelfName: shelf.name,
-  count: books.filter(
-    (book) => book.shelfId === shelf.id
-  ).length,
-}));
+  const booksPerShelf = shelves.map((shelf) => ({
+    shelfId: shelf.id,
+    shelfName: shelf.name,
+    count: books.filter((book) => book.shelfId === shelf.id).length,
+  }));
 
   // ------------yearly goal -------------------
   const [yearlyGoal, setYearlyGoal] = useState(() => {
-  const savedGoal = localStorage.getItem("yearlyGoal");
+    const savedGoal = localStorage.getItem("yearlyGoal");
 
-  if (!savedGoal) {
-    return 12;
-  }
+    if (!savedGoal) {
+      return 12;
+    }
 
-  const parsedGoal = Number(savedGoal);
+    const parsedGoal = Number(savedGoal);
 
-  return Number.isFinite(parsedGoal) && parsedGoal >= 0
-    ? parsedGoal
-    : 12;
-});
+    return Number.isFinite(parsedGoal) && parsedGoal >= 0 ? parsedGoal : 12;
+  });
 
+  // update and save every time yearly goal changes
+  useEffect(() => {
+    localStorage.setItem("yearlyGoal", String(yearlyGoal));
+  }, [yearlyGoal]);
 
-// update and save every time yearly goal changes 
-useEffect(() => {
-  localStorage.setItem(
-    "yearlyGoal",
-    String(yearlyGoal)
-  );
-}, [yearlyGoal]);
-
-
-//--------------goal percentage-----------------
-const goalPercentage =
-  yearlyGoal > 0
-    ? Math.min(
-        100,
-        Math.round((finishedThisYear / yearlyGoal) * 100)
-      )
-    : 0;
+  //--------------goal percentage-----------------
+  const goalPercentage =
+    yearlyGoal > 0
+      ? Math.min(100, Math.round((finishedThisYear / yearlyGoal) * 100))
+      : 0;
 
   return (
     <div>
@@ -336,10 +317,14 @@ const goalPercentage =
 
       {/* summary */}
       <Summary
-        toReadCount={toReadCount}
-        readingCount={readingCount}
-        finishedCount={finishedCount}
+        booksPerShelf={booksPerShelf}
+        finishedThisYear={finishedThisYear}
         averageRating={averageRating}
+        yearlyGoal={yearlyGoal}
+        goalPercentage={goalPercentage}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        setYearlyGoal={setYearlyGoal}
       />
 
       {/* search filter  */}
