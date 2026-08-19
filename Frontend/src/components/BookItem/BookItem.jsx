@@ -30,6 +30,8 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
     setIsEditing(true);
   };
 
+  // gives shelf id
+  const finishedShelfId = shelves.find((shelf) => shelf.isFinishedShelf)?.id;
   //shelf change
   const handleShelfChange = (e) => {
     const value = e.target.value;
@@ -37,10 +39,10 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
     setEditedBook({
       ...editedBook,
       shelfId: value,
-      rating: value === "finished" ? editedBook.rating : "",
+      rating: value === finishedShelfId ? editedBook.rating : "",
     });
 
-    if (value !== "finished") {
+    if (value !== finishedShelfId) {
       setErrors({
         ...errors,
         rating: "",
@@ -182,7 +184,7 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
             <select
               id="rating"
               value={editedBook.rating}
-              disabled={editedBook.shelfId !== "finished"}
+              disabled={editedBook.shelfId !== finishedShelfId}
               onChange={(e) => {
                 setEditedBook({
                   ...editedBook,
@@ -231,7 +233,8 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
           </p>
           {/* rating  */}
           <p>
-            Rating: {book.shelfId === "finished" ? book.rating || "-" : "-"}
+            Rating:{" "}
+            {book.shelfId === finishedShelfId ? book.rating || "-" : "-"}
           </p>
 
           <div className="btn-container">

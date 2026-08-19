@@ -11,21 +11,29 @@ const STARTER_SHELVES = [
   {
     id: "to-read",
     name: "To Read",
+    isFinishedShelf: false,
   },
   {
     id: "reading",
     name: "Reading",
+    isFinishedShelf: false,
   },
   {
     id: "finished",
     name: "Finished",
+    isFinishedShelf: true, //this makes only one starter shelf as finished
   },
 ];
 
 //migrate(convert) status value as shelfId
 const migrateBooks = (books) => {
+  const statusToShelfId = {
+    "To Read": "to-read",
+    Reading: "reading",
+    Finished: "finished",
+  };
+
   return books.map((book) => {
-    //accepts book array completely
     if (!book.status) {
       return BookHelper(book);
     }
@@ -34,7 +42,7 @@ const migrateBooks = (books) => {
 
     return BookHelper({
       ...rest,
-      shelfId: status,
+      shelfId: statusToShelfId[status],
     });
   });
 };
@@ -99,12 +107,13 @@ function App() {
     );
   };
 
-  //-----------------shelf management----------------
+  //-----------------SHELF MANAGEMENT FUNCTIONS----------------
   // create a new shelf
   const handleCreateShelf = (shelfName) => {
     const newShelf = {
       id: Date.now().toString(),
       name: shelfName.trim(),
+      isFinishedShelf: false,
     };
 
     setShelves((prevShelves) => [...prevShelves, newShelf]);
@@ -119,21 +128,41 @@ function App() {
     );
   };
 
+  //handle finished shelf
+  //marks a shelf as finished
+  const handleSetFinishedShelf = (shelfId) => {
+    setShelves((prev) =>
+      prev.map((e) => ({
+        ...e,
+        isFinishedShelf: e.id === shelfId,
+      })),
+    );
+  };
+
+  //checks the finished shelf
+  const finishedShelf = shelves.find((shelf) => shelf.isFinishedShelf);
+
+  //optional chaining - "?"
+  //only try to acces ".id" id "finishedShelf" actually exists
+  //will not shrow error if we try to access .id of undefined
+  //instead of crashing it becomes "undefined"
+  const finishedShelfId = finishedShelf?.id;
+
   //delete a shelf
   const handleDeleteShelf = (shelfId, destination) => {
     //1. move all books from deleted shelf
     setBooks((prev) =>
       prev.map((book) =>
         book.shelfId === shelfId //finds book belonging to shelf deleting
-     ? { ...book, shelfId: destination } // move books to destinition shelf
-      : book,
+          ? { ...book, shelfId: destination } // move books to destinition shelf
+          : book,
       ),
     );
 
     //2. remove shelf
-    setShelves((prev) => 
-    prev.filter((shelf) => shelf.id !== shelfId) //filters only those books which are != the shelf we are deleting
-  )
+    setShelves(
+      (prev) => prev.filter((shelf) => shelf.id !== shelfId), //filters only those books which are != the shelf we are deleting
+    );
   };
 
   // ---------------------SEARCH----------------------
@@ -158,14 +187,14 @@ function App() {
 
   const readingCount = books.filter((e) => e.shelfId === "reading").length;
 
-  const finishedCount = books.filter((e) => e.shelfId === "finished").length;
+  const finishedCount = books.filter((e) => e.shelfId === finishedShelfId).length;
 
   // for average rating
   const finishedBooks = books.filter((book) => {
     const rating = Number(book.rating);
 
     return (
-      book.shelfId === "finished" &&
+      book.shelfId === finishedShelfId &&
       !isNaN(rating) &&
       rating >= 1 &&
       rating <= 5
@@ -189,7 +218,8 @@ function App() {
         shelves={shelves}
         onCreateShelf={handleCreateShelf}
         onRenameShelf={handleRenameShelf}
-        onDeleteShelf = {handleDeleteShelf}
+        onDeleteShelf={handleDeleteShelf}
+        onSetFinishedShelf={handleSetFinishedShelf}
       />
       <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
 
