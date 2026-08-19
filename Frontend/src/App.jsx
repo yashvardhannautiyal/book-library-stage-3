@@ -301,10 +301,30 @@ function App() {
       ? Math.min(100, Math.round((finishedThisYear / yearlyGoal) * 100))
       : 0;
 
+  //-----------------PAGINATION------------
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const BOOKS_PER_PAGE = 5;
+
+  const totalPages = Math.ceil(filteredBooks.length / BOOKS_PER_PAGE);
+
+  const startIndex = (currentPage - 1) * BOOKS_PER_PAGE;
+
+  const paginatedBooks = filteredBooks.slice(
+    startIndex,
+    startIndex + BOOKS_PER_PAGE,
+  );
+
+  // reset pages when filtering change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, shelfFilter]);
+
   return (
     <div>
       {/* form */}
-      {/* pass shelves as prop so that AddBookForm can access the shelves */}
+      <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
+    {/* pass shelves as prop so that AddBookForm can access the shelves */}
 
       <ShelfManagement
         shelves={shelves}
@@ -313,8 +333,6 @@ function App() {
         onDeleteShelf={handleDeleteShelf}
         onSetFinishedShelf={handleSetFinishedShelf}
       />
-      <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
-
       {/* summary */}
       <Summary
         booksPerShelf={booksPerShelf}
@@ -338,11 +356,14 @@ function App() {
 
       {/* booklist  */}
       <BookList
-        books={filteredBooks}
+        books={paginatedBooks}
         onDelete={handleDelete}
         onEdit={handleEdit}
         totalBooks={books.length}
         shelves={shelves}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
       />
     </div>
   );
