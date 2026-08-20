@@ -65,7 +65,7 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
 
     if (Object.keys(newErrors).length > 0) return;
 
-    const validBook = BookHelper(editedBook);
+    const validBook = BookHelper(editedBook, finishedShelfId);
 
     onEdit(validBook);
 

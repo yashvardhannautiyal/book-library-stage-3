@@ -1,9 +1,9 @@
-const BookHelper = (book) =>{
+const BookHelper = (book, finishedShelfId) =>{
     
     const updatedBook = {...book};
 
     // if book is not in finished shelf 
-    if(updatedBook.shelfId !== "finished"){
+    if(updatedBook.shelfId !== finishedShelfId){
         updatedBook.rating = "";
     }
 

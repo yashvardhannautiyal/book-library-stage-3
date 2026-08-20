@@ -15,8 +15,12 @@ function AddBookForm({ onAddBook, shelves }) {
     title: "",
     author: "",
     rating: "",
-    shelf : "",
+    shelf: "",
   });
+
+  const finishedShelf = shelves.find((shelf) => shelf.isFinishedShelf);
+
+  const finishedShelfId = finishedShelf?.id;
 
   // function - handle shelf change
   const handleShelfChange = (e) => {
@@ -24,11 +28,11 @@ function AddBookForm({ onAddBook, shelves }) {
     setShelfId(value);
 
     if (errors.shelf) {
-    setErrors({
-      ...errors,
-      shelf: "",
-    });
-  }
+      setErrors({
+        ...errors,
+        shelf: "",
+      });
+    }
   };
 
   //   submit button
@@ -52,7 +56,7 @@ function AddBookForm({ onAddBook, shelves }) {
 
     if (Object.keys(newErrors).length > 0) return;
 
-    const validBook = BookHelper(newBook);
+    const validBook = BookHelper(newBook, finishedShelfId);
 
     onAddBook(validBook);
 
@@ -65,7 +69,7 @@ function AddBookForm({ onAddBook, shelves }) {
       title: "",
       author: "",
       rating: "",
-      shelf:"",
+      shelf: "",
     });
   };
   return (
@@ -147,7 +151,7 @@ function AddBookForm({ onAddBook, shelves }) {
             <select
               id="rating"
               value={rating}
-              disabled={shelfId !== "finished"}
+              disabled={shelfId !== finishedShelfId}
               onChange={(e) => {
                 setRating(e.target.value);
 

@@ -26,7 +26,7 @@ const STARTER_SHELVES = [
 ];
 
 //migrate(convert) status value as shelfId
-const migrateBooks = (books) => {
+const migrateBooks = (books, finishedShelfId) => {
   const statusToShelfId = {
     "To Read": "to-read",
     Reading: "reading",
@@ -38,7 +38,8 @@ const migrateBooks = (books) => {
       return BookHelper({
         ...book,
         finishedAt: book.finishedAt ?? null,
-      });
+      },
+    finishedShelfId);
     }
 
     const { status, ...rest } = book;
@@ -48,8 +49,8 @@ const migrateBooks = (books) => {
     return BookHelper({
       ...rest,
       shelfId,
-      finishedAt: shelfId === "finished" ? (book.finishedAt ?? null) : null,
-    });
+      finishedAt: shelfId === finishedShelfId ? (book.finishedAt ?? null) : null,
+    }, finishedShelfId);
   });
 };
 
@@ -70,6 +71,16 @@ function App() {
     localStorage.setItem("shelves", JSON.stringify(shelves));
   }, [shelves]);
 
+  //checks the finished shelf
+  const finishedShelf = shelves.find((shelf) => shelf.isFinishedShelf);
+
+  //optional chaining - "?"
+  //only try to acces ".id" id "finishedShelf" actually exists
+  //will not shrow error if we try to access .id of undefined
+  //instead of crashing it becomes "undefined"
+  const finishedShelfId = finishedShelf?.id;
+
+
   //takes the book from books with status and migrate books to shelf (then remove status and add shelfID)
   const [books, setBooks] = useState(() => {
     const savedBooks = localStorage.getItem("books");
@@ -83,14 +94,15 @@ function App() {
     const needsMigration = parsedBooks.some((book) => book.status);
 
     if (needsMigration) {
-      return migrateBooks(parsedBooks);
+      return migrateBooks(parsedBooks, finishedShelfId);
     }
 
     return parsedBooks.map((book) =>
       BookHelper({
         ...book,
         finishedAt: book.finishedAt ?? null,
-      }),
+      },
+    finishedShelfId),
     );
   });
 
@@ -190,15 +202,7 @@ function App() {
     );
   };
 
-  //checks the finished shelf
-  const finishedShelf = shelves.find((shelf) => shelf.isFinishedShelf);
-
-  //optional chaining - "?"
-  //only try to acces ".id" id "finishedShelf" actually exists
-  //will not shrow error if we try to access .id of undefined
-  //instead of crashing it becomes "undefined"
-  const finishedShelfId = finishedShelf?.id;
-
+  
   //delete a shelf
   const handleDeleteShelf = (shelfId, destination) => {
     setBooks((prev) =>
