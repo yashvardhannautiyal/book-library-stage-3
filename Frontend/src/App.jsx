@@ -5,6 +5,7 @@ import Summary from "./components/Summary/Summary.jsx";
 import SearchFilter from "./components/SearchFilter/SearchFilter.jsx";
 import BookHelper from "./utils/BookHelper.js";
 import ShelfManagement from "./components/ShelfManagement/ShelfManagement.jsx";
+import UndoToast from "./components/UndoToast/UndoToast.jsx";
 
 // starter shelves
 const STARTER_SHELVES = [
@@ -35,26 +36,36 @@ const migrateBooks = (books, finishedShelfId) => {
 
   return books.map((book) => {
     if (!book.status) {
-      return BookHelper({
-        ...book,
-        finishedAt: book.finishedAt ?? null,
-      },
-    finishedShelfId);
+      return BookHelper(
+        {
+          ...book,
+          finishedAt: book.finishedAt ?? null,
+        },
+        finishedShelfId,
+      );
     }
 
     const { status, ...rest } = book;
 
     const shelfId = statusToShelfId[status];
 
-    return BookHelper({
-      ...rest,
-      shelfId,
-      finishedAt: shelfId === finishedShelfId ? (book.finishedAt ?? null) : null,
-    }, finishedShelfId);
+    return BookHelper(
+      {
+        ...rest,
+        shelfId,
+        finishedAt:
+          shelfId === finishedShelfId ? (book.finishedAt ?? null) : null,
+      },
+      finishedShelfId,
+    );
   });
 };
 
 function App() {
+  // Book delete undo state
+  const [deletedBook, setDeletedBook] = useState(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
+
   // shelves state
   const [shelves, setShelves] = useState(() => {
     const savedShelves = localStorage.getItem("shelves");
@@ -80,7 +91,6 @@ function App() {
   //instead of crashing it becomes "undefined"
   const finishedShelfId = finishedShelf?.id;
 
-
   //takes the book from books with status and migrate books to shelf (then remove status and add shelfID)
   const [books, setBooks] = useState(() => {
     const savedBooks = localStorage.getItem("books");
@@ -98,11 +108,13 @@ function App() {
     }
 
     return parsedBooks.map((book) =>
-      BookHelper({
-        ...book,
-        finishedAt: book.finishedAt ?? null,
-      },
-    finishedShelfId),
+      BookHelper(
+        {
+          ...book,
+          finishedAt: book.finishedAt ?? null,
+        },
+        finishedShelfId,
+      ),
     );
   });
 
@@ -125,9 +137,44 @@ function App() {
     setBooks((prevBooks) => [...prevBooks, bookFinishDate]);
   };
 
-  //delete book
-  const handleDelete = (id) => {
-    setBooks((prevBooks) => prevBooks.filter((book) => book.id !== id));
+  // delete book
+  const handleDelete = (bookToDelete) => {
+    // save complete book so it can be restored exactly
+    setDeletedBook(bookToDelete);
+
+    // remove the book from the library
+    setBooks((prevBooks) =>
+      prevBooks.filter((book) => book.id !== bookToDelete.id),
+    );
+
+    // show undo toast
+    setShowUndoToast(true);
+  };
+
+  // timer
+  useEffect(() => {
+    if (!showUndoToast) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowUndoToast(false);
+      setDeletedBook(null);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [showUndoToast]);
+
+  // undo the most recent book deletion
+  const handleUndoDelete = () => {
+    if (!deletedBook) {
+      return;
+    }
+
+    setBooks((prevBooks) => [...prevBooks, deletedBook]);
+
+    setDeletedBook(null);
+    setShowUndoToast(false);
   };
 
   // edit books
@@ -202,7 +249,6 @@ function App() {
     );
   };
 
-  
   //delete a shelf
   const handleDeleteShelf = (shelfId, destination) => {
     setBooks((prev) =>
@@ -328,7 +374,7 @@ function App() {
     <div>
       {/* form */}
       <AddBookForm onAddBook={handleAddBook} shelves={shelves} />
-    {/* pass shelves as prop so that AddBookForm can access the shelves */}
+      {/* pass shelves as prop so that AddBookForm can access the shelves */}
 
       <ShelfManagement
         shelves={shelves}
@@ -369,6 +415,13 @@ function App() {
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
+
+       {showUndoToast && (
+        <UndoToast
+          book={deletedBook}
+          onUndo={handleUndoDelete}
+        />
+      )}
     </div>
   );
 }

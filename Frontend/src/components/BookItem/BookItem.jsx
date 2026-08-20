@@ -242,7 +242,7 @@ function BookItem({ book, onDelete, onEdit, shelves }) {
               Edit
             </button>
             {/* delete  */}
-            <button className="delete-btn" onClick={() => onDelete(book.id)}>
+            <button className="delete-btn" onClick={() => onDelete(book)}>
               Delete
             </button>
           </div>
