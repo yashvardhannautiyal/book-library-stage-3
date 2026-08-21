@@ -254,14 +254,35 @@ function App() {
 
   //handle finished shelf
   //marks a shelf as finished
-  const handleSetFinishedShelf = (shelfId) => {
-    setShelves((prev) =>
-      prev.map((e) => ({
-        ...e,
-        isFinishedShelf: e.id === shelfId,
-      })),
-    );
-  };
+const handleSetFinishedShelf = (shelfId) => {
+  // Update which shelf is the designated finished shelf
+  setShelves((prevShelves) =>
+    prevShelves.map((shelf) => ({
+      ...shelf,
+      isFinishedShelf: shelf.id === shelfId,
+    })),
+  );
+
+  // update books and keep - rating and finishedAt same for new finished shelf
+  setBooks((prevBooks) =>
+    prevBooks.map((book) => {
+      const isNowFinished = book.shelfId === shelfId;
+
+      if (isNowFinished) {
+        return {
+          ...book,
+          finishedAt: book.finishedAt ?? new Date().toISOString(),
+        };
+      }
+
+      return {
+        ...book,
+        rating: "",
+        finishedAt: null,
+      };
+    }),
+  );
+};
 
   //delete a shelf
   const handleDeleteShelf = (shelfId, destination) => {
