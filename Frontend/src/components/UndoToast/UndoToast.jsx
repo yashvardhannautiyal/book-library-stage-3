@@ -1,4 +1,5 @@
 import React from 'react'
+import './UndoToast.css'
 
 function UndoToast({book, onUndo}) {
     if(!book){
