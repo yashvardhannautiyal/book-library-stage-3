@@ -27,18 +27,24 @@ const STARTER_SHELVES = [
 ];
 
 //migrate(convert) status value as shelfId
-const migrateBooks = (books, finishedShelfId) => {
+const migrateBooks = (books, shelves, finishedShelfId) => {
   const statusToShelfId = {
     "To Read": "to-read",
     Reading: "reading",
     Finished: "finished",
   };
 
+  const validShelfs = shelves.map((shelf) => shelf.id);
   return books.map((book) => {
     if (!book.status) {
+      const shelfId = validShelfs.includes(book.shelfId)
+        ? book.shelfId
+        : "to-read";
+
       return BookHelper(
         {
           ...book,
+          shelfId,
           finishedAt: book.finishedAt ?? null,
         },
         finishedShelfId,
@@ -47,7 +53,7 @@ const migrateBooks = (books, finishedShelfId) => {
 
     const { status, ...rest } = book;
 
-    const shelfId = statusToShelfId[status];
+    const shelfId = statusToShelfId[status] || "to-read";
 
     return BookHelper(
       {
@@ -101,21 +107,7 @@ function App() {
 
     const parsedBooks = JSON.parse(savedBooks);
 
-    const needsMigration = parsedBooks.some((book) => book.status);
-
-    if (needsMigration) {
-      return migrateBooks(parsedBooks, finishedShelfId);
-    }
-
-    return parsedBooks.map((book) =>
-      BookHelper(
-        {
-          ...book,
-          finishedAt: book.finishedAt ?? null,
-        },
-        finishedShelfId,
-      ),
-    );
+    return migrateBooks(parsedBooks, shelves, finishedShelfId);
   });
 
   //save books to local storage
@@ -171,7 +163,29 @@ function App() {
       return;
     }
 
-    setBooks((prevBooks) => [...prevBooks, deletedBook]);
+    // Check whether the book's original shelf still exists
+    const shelfExists = shelves.some(
+      (shelf) => shelf.id === deletedBook.shelfId,
+    );
+
+    // Restore the exact book if its shelf still exists
+    if (shelfExists) {
+      setBooks((prevBooks) => [...prevBooks, deletedBook]);
+    } else {
+      // If original shelf deleted
+      // move book to valid existing shelf
+      const fallbackShelfId = shelves[0]?.id;
+
+      if (fallbackShelfId) {
+        setBooks((prevBooks) => [
+          ...prevBooks,
+          {
+            ...deletedBook,
+            shelfId: fallbackShelfId,
+          },
+        ]);
+      }
+    }
 
     setDeletedBook(null);
     setShowUndoToast(false);
@@ -416,11 +430,8 @@ function App() {
         onPageChange={setCurrentPage}
       />
 
-       {showUndoToast && (
-        <UndoToast
-          book={deletedBook}
-          onUndo={handleUndoDelete}
-        />
+      {showUndoToast && (
+        <UndoToast book={deletedBook} onUndo={handleUndoDelete} />
       )}
     </div>
   );
