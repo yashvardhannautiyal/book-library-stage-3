@@ -27,43 +27,44 @@ const STARTER_SHELVES = [
 ];
 
 //migrate(convert) status value as shelfId
-const migrateBooks = (books, shelves, finishedShelfId) => {
+const migrateBooks = (books, shelves) => {
   const statusToShelfId = {
     "To Read": "to-read",
     Reading: "reading",
     Finished: "finished",
   };
 
-  const validShelfs = shelves.map((shelf) => shelf.id);
-  return books.map((book) => {
-    if (!book.status) {
-      const shelfId = validShelfs.includes(book.shelfId)
-        ? book.shelfId
-        : "to-read";
+  const validShelfIds = shelves.map((shelf) => shelf.id);
 
-      return BookHelper(
-        {
-          ...book,
-          shelfId,
-          finishedAt: book.finishedAt ?? null,
-        },
-        finishedShelfId,
-      );
+  const fallbackShelfId =
+    validShelfIds.includes("to-read")
+      ? "to-read"
+      : validShelfIds[0];
+
+  return books.map((book) => {
+    let shelfId;
+
+    // Old Stage 1 book
+    if (book.status) {
+      shelfId = statusToShelfId[book.status];
+    } else {
+      // Already shelf-based book
+      shelfId = book.shelfId;
     }
 
+    // Make sure the shelf actually exists
+    if (!validShelfIds.includes(shelfId)) {
+      shelfId = fallbackShelfId;
+    }
+
+    // Remove old status and return shelf-based book
     const { status, ...rest } = book;
 
-    const shelfId = statusToShelfId[status] || "to-read";
-
-    return BookHelper(
-      {
-        ...rest,
-        shelfId,
-        finishedAt:
-          shelfId === finishedShelfId ? (book.finishedAt ?? null) : null,
-      },
-      finishedShelfId,
-    );
+    return {
+      ...rest,
+      shelfId,
+      finishedAt: book.finishedAt ?? null,
+    };
   });
 };
 
@@ -107,7 +108,7 @@ function App() {
 
     const parsedBooks = JSON.parse(savedBooks);
 
-    return migrateBooks(parsedBooks, shelves, finishedShelfId);
+    return migrateBooks(parsedBooks, shelves);
   });
 
   //save books to local storage
@@ -285,15 +286,48 @@ const handleSetFinishedShelf = (shelfId) => {
 };
 
   //delete a shelf
-  const handleDeleteShelf = (shelfId, destination) => {
-    setBooks((prev) =>
-      prev.map((book) =>
-        book.shelfId === shelfId ? { ...book, shelfId: destination } : book,
-      ),
-    );
+const handleDeleteShelf = (shelfId, destinationShelfId) => {
+  // Do not allow deleting the only remaining shelf
+  if (shelves.length <= 1) {
+    return;
+  }
 
-    setShelves((prev) => prev.filter((shelf) => shelf.id !== shelfId));
-  };
+  //  destination shelf must be selected
+  if (!destinationShelfId) {
+    return;
+  }
+
+  // destination must be existing shelf
+  const destinationExists = shelves.some(
+    (shelf) => shelf.id === destinationShelfId,
+  );
+
+  if (!destinationExists) {
+    return;
+  }
+
+  // Cannot move books to the shelf that is being deleted
+  if (destinationShelfId === shelfId) {
+    return;
+  }
+
+  // Move all books first while preserving every other property
+  setBooks((prevBooks) =>
+    prevBooks.map((book) =>
+      book.shelfId === shelfId
+        ? {
+            ...book,
+            shelfId: destinationShelfId,
+          }
+        : book,
+    ),
+  );
+
+  // Remove the shelf only after books have been reassigned
+  setShelves((prevShelves) =>
+    prevShelves.filter((shelf) => shelf.id !== shelfId),
+  );
+};
 
   // ---------------------SEARCH----------------------
   const [searchTerm, setSearchTerm] = useState("");
